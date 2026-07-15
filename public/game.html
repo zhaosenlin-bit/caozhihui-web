@@ -1,0 +1,249 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>太阳系 3D · 行星识别游戏</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="./vendor/tailwind.css" />
+
+  <script src="./vendor/react.production.min.js"></script>
+  <script src="./vendor/react-dom.production.min.js"></script>
+  <script>window.Motion = window.FramerMotion;</script>
+  <script src="./vendor/framer-motion.js"></script>
+  <script type="module" src="./pixelsnow.mjs"></script>
+
+  <style>
+    body { background: #000; margin: 0; overflow: hidden; }
+    .font-heading { font-family: "Instrument Serif", serif; }
+    .font-body { font-family: Inter, sans-serif; }
+    #pixelsnow-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    #pixelsnow-bg canvas { display: block; width: 100%; height: 100%; }
+    #game-canvas { position: fixed; inset: 0; z-index: 1; }
+    .hud {
+      position: fixed; z-index: 10; pointer-events: none;
+      color: #fff; font-family: Inter, sans-serif;
+    }
+    .hud .panel {
+      pointer-events: auto;
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 18px;
+      padding: 14px 18px;
+    }
+    .liquid-glass {
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .choice-btn {
+      pointer-events: auto;
+      transition: all 0.15s;
+    }
+    .choice-btn:hover { background: rgba(255,255,255,0.12); }
+
+    /* ---- Intro overlay (one-shot, 1.6s, then JS removes this element) ---- */
+    #intro {
+      position: fixed; inset: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at center, #0b0f1e 0%, #000 70%);
+      color: #fff;
+      transition: opacity .6s ease;
+    }
+    #intro.fade-out { opacity: 0; pointer-events: none; }
+    #intro .stack { text-align: center; max-width: 720px; padding: 0 24px; }
+
+    /* Starfield warp-in (pure CSS, no extra JS dependency) */
+    #intro .warp {
+      position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+    }
+    #intro .warp::before,
+    #intro .warp::after {
+      content: ""; position: absolute; inset: -50%;
+      background:
+        radial-gradient(1px 1px at 20% 30%, #fff 50%, transparent 51%),
+        radial-gradient(1.5px 1.5px at 70% 60%, #cbd5ff 50%, transparent 51%),
+        radial-gradient(1px 1px at 40% 80%, #fff 50%, transparent 51%),
+        radial-gradient(1px 1px at 85% 25%, #fff 50%, transparent 51%),
+        radial-gradient(1px 1px at 15% 70%, #fff 50%, transparent 51%);
+      background-size: 240px 240px;
+      animation: warpIn 1.4s ease-out forwards;
+      opacity: 0.9;
+    }
+    #intro .warp::after {
+      animation-duration: 1.6s;
+      animation-delay: .05s;
+      filter: blur(0.5px);
+    }
+    @keyframes warpIn {
+      0%   { transform: scale(2.2); opacity: 0; }
+      40%  { opacity: 1; }
+      100% { transform: scale(1);   opacity: 0.55; }
+    }
+
+    /* Title + sheen */
+    #intro .title {
+      position: relative; display: inline-block;
+      font-family: "Instrument Serif", serif;
+      font-style: italic; font-weight: 400;
+      font-size: clamp(48px, 7vw, 96px); line-height: 0.95;
+      letter-spacing: -2px;
+      opacity: 0; transform: translateY(14px);
+      animation: rise .9s ease-out .25s forwards;
+      background: linear-gradient(180deg, #ffffff 0%, #d4c5ff 100%);
+      -webkit-background-clip: text; background-clip: text;
+      color: transparent;
+    }
+    #intro .title::after {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(100deg,
+        transparent 30%,
+        rgba(255,255,255,0.55) 50%,
+        transparent 70%);
+      transform: translateX(-120%);
+      animation: sheen 1.2s ease-out .6s forwards;
+      -webkit-mask: linear-gradient(#fff 0 0);
+              mask: linear-gradient(#fff 0 0);
+      mix-blend-mode: screen;
+      pointer-events: none;
+    }
+    @keyframes sheen { to { transform: translateX(120%); } }
+    @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+
+    #intro .pill {
+      display: inline-block;
+      padding: 6px 14px; border-radius: 9999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.16);
+      font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+      color: rgba(196,181,253,0.9);
+      opacity: 0; transform: translateY(8px);
+      animation: rise .8s ease-out .1s forwards;
+    }
+    #intro .sub {
+      margin-top: 18px; color: rgba(255,255,255,0.78);
+      font-size: 15px; line-height: 1.7;
+      opacity: 0; transform: translateY(8px);
+      animation: rise .8s ease-out .55s forwards;
+    }
+    #intro .cta {
+      margin-top: 28px;
+      display: inline-block;
+      padding: 10px 22px; border-radius: 9999px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.2);
+      font-size: 13px; letter-spacing: 0.25em;
+      color: #fde68a;
+      opacity: 0; transform: translateY(8px);
+      animation: rise .8s ease-out .85s forwards, ctaPulse 1.8s ease-out 1.6s infinite;
+      position: relative;
+    }
+    @keyframes ctaPulse {
+      0%   { box-shadow: 0 0 0 0 rgba(253,230,138,0.55); }
+      80%  { box-shadow: 0 0 0 14px rgba(253,230,138,0); }
+      100% { box-shadow: 0 0 0 0 rgba(253,230,138,0); }
+    }
+
+    /* Skip hint */
+    #intro .skip {
+      position: absolute; bottom: 18px; right: 22px;
+      font-size: 11px; letter-spacing: 0.25em;
+      color: rgba(255,255,255,0.5);
+      opacity: 0; animation: rise .6s ease-out 1.1s forwards;
+    }
+
+    /* Ship SVG that flies up from bottom */
+    #intro .ship {
+      position: absolute; left: 50%; bottom: -120px;
+      transform: translateX(-50%);
+      width: 72px; height: 72px;
+      opacity: 0;
+      animation: shipIn 1.2s cubic-bezier(.2,.7,.2,1) .15s forwards;
+    }
+    @keyframes shipIn {
+      0%   { opacity: 0; bottom: -120px; }
+      40%  { opacity: 1; }
+      80%  { bottom: 26px; }
+      100% { opacity: 0; bottom: 80px; }
+    }
+  </style>
+</head>
+<body class="font-body text-white antialiased">
+  <div id="pixelsnow-bg"></div>
+  <canvas id="game-canvas"></canvas>
+  <div id="hud-root"></div>
+
+  <!-- Intro overlay (pure CSS + tiny inline JS to skip/remove) -->
+  <div id="intro" aria-hidden="true">
+    <div class="warp"></div>
+    <svg class="ship" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      <path d="M32 4 L52 56 L32 46 L12 56 Z" fill="rgba(255,255,255,0.85)" stroke="rgba(255,255,255,0.6)" stroke-width="1"/>
+      <circle cx="32" cy="30" r="4" fill="#60a5fa"/>
+    </svg>
+    <div class="stack">
+      <span class="pill">Cosmic Atlas</span>
+      <div class="title">太阳系 3D</div>
+      <div class="sub">驾驶飞船,逐一探索太阳系的行星。<br/>WASD 飞行 · 鼠标拖拽视角 · 滚轮缩放 · 飞到行星附近自动出题。</div>
+      <div class="cta">PRESS ANY KEY TO START</div>
+    </div>
+    <div class="skip">按任意键跳过 · 1.6s</div>
+  </div>
+
+  <script>
+    // Intro: remove after 1.6s or on first key/click/touch.
+    (function () {
+      var el = document.getElementById('intro');
+      var done = false;
+      function finish() {
+        if (done) return;
+        done = true;
+        // Set a window flag the game loop can read to (optionally) gate input.
+        window.__introDone = true;
+        el.classList.add('fade-out');
+        setTimeout(function () { el.parentNode && el.parentNode.removeChild(el); }, 700);
+      }
+      window.addEventListener('keydown', function () { finish(); }, { once: true });
+      window.addEventListener('mousedown', function () { finish(); }, { once: true });
+      window.addEventListener('touchstart', function () { finish(); }, { once: true });
+      setTimeout(finish, 1700);
+    })();
+  </script>
+
+  <script type="module">
+    queueMicrotask(() => {
+      if (!window.PixelSnow || !window.PixelSnow.mount) {
+        console.warn("[game] PixelSnow module not loaded");
+        return;
+      }
+      const container = document.getElementById("pixelsnow-bg");
+      const fit = () => {
+        container.style.width = window.innerWidth + "px";
+        container.style.height = window.innerHeight + "px";
+      };
+      fit();
+      window.addEventListener("resize", fit);
+      window.__gamePixelSnowHandle = window.PixelSnow.mount(container, {
+        color: "#ffffff",
+        flakeSize: 0.01,
+        minFlakeSize: 1.25,
+        pixelResolution: 200,
+        speed: 1.25,
+        density: 0.3,
+        direction: 125,
+        brightness: 1,
+      });
+    });
+  </script>
+  <script type="module" src="./game.js?v=2"></script>
+</body>
+</html>

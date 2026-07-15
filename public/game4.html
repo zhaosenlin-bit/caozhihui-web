@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="description" content="Stellar Strike 3D 宇宙射击游戏。开船击碎陨石，坚持 60 秒。" />
+  <meta property="og:title" content="Stellar Strike - 3D 宇宙射击" />
+  <meta property="og:description" content="3D 宇宙射击。开船击碎陨石。" />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#0b0f1e" />
+  <meta name="color-scheme" content="dark" />
+  <title>Stellar Strike &mdash; 3D 射击 &mdash; 宇宙探索</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><radialGradient id='g' cx='50%' cy='50%' r='50%'><stop offset='0%' stop-color='%23fde68a'/><stop offset='100%' stop-color='%23f59e0b'/></radialGradient></defs><circle cx='32' cy='32' r='30' fill='%230b0f1e'/><circle cx='32' cy='32' r='22' fill='none' stroke='%235227FF' stroke-width='1' opacity='0.5'/><circle cx='32' cy='32' r='12' fill='url(%23g)'/><circle cx='22' cy='20' r='1.5' fill='%23fff'/><circle cx='44' cy='22' r='1' fill='%23fff'/><circle cx='40' cy='46' r='1.2' fill='%23fff'/></svg>">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&display=swap"
+    rel="stylesheet"
+  />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { heading: ["Instrument Serif", "serif"], body: ["Barlow", "sans-serif"] } } } };
+  </script>
+
+  <style>
+    html, body { background:#000; color:#fff; overflow:hidden; }
+    body { font-family: "Barlow", sans-serif; margin:0; }
+    .font-heading { font-family: "Instrument Serif", serif; }
+
+    .hud-chip {
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 18px;
+      padding: 10px 18px;
+      box-shadow: inset 0 1px 1px rgba(255,255,255,0.10), 0 4px 14px rgba(0,0,0,0.35);
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: opacity .55s ease, transform .55s ease;
+    }
+    .hud-chip.in { opacity: 1; transform: translateY(0); }
+    .pill-btn {
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 9999px;
+      padding: 8px 18px;
+      box-shadow: inset 0 1px 1px rgba(255,255,255,0.12);
+      transition: background .15s ease, transform .15s ease;
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    .pill-btn.in { opacity: 1; transform: translateY(0); }
+    .pill-btn:hover { background: rgba(255,255,255,0.12); transform: translateY(-1px); }
+    .pill-btn:active { transform: translateY(0); }
+
+    #btnStart.cta { position: relative; overflow: visible; }
+    #btnStart.cta::after {
+      content: "";
+      position: absolute; inset: -2px; border-radius: 9999px;
+      border: 1px solid rgba(253,230,138,0.7);
+      opacity: 0; animation: ctaPulse 1.8s ease-out infinite; pointer-events: none;
+    }
+    @keyframes ctaPulse {
+      0%   { opacity: 0.85; transform: scale(1); }
+      80%  { opacity: 0;    transform: scale(1.18); }
+      100% { opacity: 0;    transform: scale(1.18); }
+    }
+
+    canvas#stage {
+      display:block;
+      width: min(1100px, 96vw);
+      height: min(620px, 70vh);
+      margin: 12px auto 0;
+      border-radius: 22px;
+      background: radial-gradient(ellipse at center, #0b0f1e 0%, #000 70%);
+      box-shadow: inset 0 0 80px rgba(80,120,255,0.08), 0 10px 40px rgba(0,0,0,0.6);
+      touch-action: none;
+    }
+
+    .help-key {
+      display:inline-block; min-width: 1.6em; text-align:center;
+      border:1px solid rgba(255,255,255,0.25); border-radius:6px;
+      padding: 1px 6px; font-size: 0.85em; background: rgba(255,255,255,0.05);
+    }
+    .blink { animation: blink 0.9s linear infinite; }
+    @keyframes blink {
+      0%,49% { opacity:1; }
+      50%,100% { opacity:0.25; }
+    }
+  </style>
+</head>
+<body class="font-body text-white antialiased">
+
+  <div class="max-w-[1200px] mx-auto px-4 pt-6 pb-2">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+      <div class="flex gap-3">
+        <div class="hud-chip">
+          <div class="text-[10px] tracking-[0.25em] opacity-60">分数</div>
+          <div id="score" class="text-2xl font-heading italic leading-none">0</div>
+        </div>
+        <div class="hud-chip">
+          <div class="text-[10px] tracking-[0.25em] opacity-60">式兵</div>
+          <div id="lives" class="text-2xl font-heading italic leading-none">♥♥♥</div>
+        </div>
+        <div class="hud-chip">
+          <div class="text-[10px] tracking-[0.25em] opacity-60">连击</div>
+          <div id="combo" class="text-2xl font-heading italic leading-none">x1</div>
+        </div>
+      </div>
+
+      <div class="text-center hud-chip" style="background:transparent; box-shadow:none; backdrop-filter:none;">
+        <h1 class="font-heading italic text-4xl md:text-5xl leading-none">Stellar Strike.</h1>
+        <p class="text-sm opacity-70 mt-2">3D 太空射击。击碎陨石,坚持 60 秒,不要耗尽生命。</p>
+      </div>
+
+      <div class="flex gap-3 items-start">
+        <div class="hud-chip">
+          <div class="text-[10px] tracking-[0.25em] opacity-60">倒计时</div>
+          <div id="time" class="text-2xl font-heading italic leading-none">60s</div>
+        </div>
+        <div class="hud-chip">
+          <div class="text-[10px] tracking-[0.25em] opacity-60">最高</div>
+          <div id="best" class="text-2xl font-heading italic leading-none">0</div>
+        </div>
+        <a href="./" class="pill-btn text-sm self-start mt-1">返回首页</a>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="stage" width="1100" height="620" role="img" aria-label="Stellar Strike 3D game stage"></canvas>
+
+  <div class="max-w-[1100px] mx-auto px-4 mt-3 flex flex-wrap items-center justify-between gap-3">
+    <div class="text-sm opacity-80">
+      <span class="help-key">&larr;</span> <span class="help-key">&rarr;</span> 驶驶  ·  
+      <span class="help-key">A</span> <span class="help-key">D</span> 驶驶  ·  
+      <span class="help-key">Space</span> / 点击 射击  ·  
+      <span class="help-key">P</span> 暂停  ·  
+      <span class="help-key">R</span> 重开
+    </div>
+    <div class="flex gap-2">
+      <button id="btnStart" class="pill-btn text-sm cta">开始游戏</button>
+      <button id="btnPause" class="pill-btn text-sm">暂停</button>
+      <button id="btnReset" class="pill-btn text-sm">重开</button>
+    </div>
+  </div>
+
+  <div id="banner" class="text-center mt-2 text-sm opacity-80">按开始游戏。在 60 秒内射击尽多的陨石。</div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three.module.js"
+    }
+  }
+  </script>
+  <script src="./game4.js?v=5" type="module"></script>
+</body>
+</html>

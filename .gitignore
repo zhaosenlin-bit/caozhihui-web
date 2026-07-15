@@ -1,0 +1,36 @@
+﻿# Python http.server logs (regenerated on every local run)
+*.log
+http.log
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Backups / scratch
+*.bak
+__*
+
+# Probe / scratch scripts at repo root
+crawl.py
+patch_modal.py
+probe_*.py
+cosmic_data.json
+
+# Archived / dead assets (moved into public/archive/ which is also gitignored)
+public/archive/
+
+# Local screenshot scratch dirs
+.shots/
+.udd*/
+.edgeout*
+.edgeerr*
+
+# Old Vite scaffold at repo root - superseded by public/index.html (active build)
+# Kept on disk for local reference but not deployed or published.
+index.html
+app.jsx
+tailwind.config.js
+tailwind.input.css
+__lightfall.js

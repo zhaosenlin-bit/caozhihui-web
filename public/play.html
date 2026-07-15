@@ -1,0 +1,217 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>宇宙迷宫 — 宇宙探索</title>
+  <meta name="description" content="驾驶飞船，逐一探索太阳系的行星。答对所有问题即可获得「宇宙探索者」徽章。" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root {
+      --bg-0: #06030f;
+      --bg-1: #0c0628;
+      --bg-2: #160a3a;
+      --accent-1: #8b5cf6;
+      --accent-2: #ec4899;
+      --accent-3: #f59e0b;
+    }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      color: #fff;
+      background: var(--bg-0);
+      overflow: hidden;
+    }
+    .font-heading { font-family: "Instrument Serif", "Songti SC", serif; }
+
+    /* Cinematic radial backdrop */
+    .bg-cosmic {
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 50% 30%, rgba(139, 92, 246, 0.35) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 50% 80%, rgba(236, 72, 153, 0.18) 0%, transparent 60%),
+        linear-gradient(180deg, #06030f 0%, #0c0628 50%, #06030f 100%);
+    }
+    /* Soft star noise */
+    .bg-stars {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        radial-gradient(1px 1px at 20% 30%, #fff 50%, transparent 51%),
+        radial-gradient(1px 1px at 80% 70%, #fff 50%, transparent 51%),
+        radial-gradient(1.5px 1.5px at 55% 25%, #cfd8ff 50%, transparent 51%),
+        radial-gradient(1px 1px at 70% 85%, #fff 50%, transparent 51%),
+        radial-gradient(1px 1px at 30% 80%, #fff 50%, transparent 51%);
+      background-size: 600px 600px;
+      opacity: 0.6;
+    }
+
+    /* The animated calibration sphere (replaces loading blob from /play/) */
+    .calibration {
+      position: absolute;
+      left: 50%; top: 50%;
+      width: 240px; height: 240px;
+      transform: translate(-50%, -50%) scale(0.6);
+      border-radius: 9999px;
+      background: conic-gradient(from 0deg, var(--accent-1), var(--accent-2), var(--accent-3), var(--accent-1));
+      filter: blur(28px);
+      opacity: 0.85;
+      animation: spin 12s linear infinite;
+    }
+    .calibration::after {
+      content: "";
+      position: absolute; inset: 28%;
+      border-radius: 9999px;
+      background: radial-gradient(circle at 30% 30%, #2a1257 0%, #0c0628 60%, #06030f 100%);
+    }
+    @keyframes spin { to { transform: translate(-50%, -50%) scale(0.6) rotate(360deg); } }
+
+    .loader { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+    .loader-text {
+      letter-spacing: 0.4em; text-transform: uppercase;
+      font-size: 12px; color: rgba(255,255,255,0.85);
+      opacity: 0; transform: translateY(8px);
+      animation: fadeUp 1.2s ease-out 0.4s forwards;
+    }
+    @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+    /* Once the loader fades, the page contents reveal */
+    main {
+      position: relative; z-index: 1; height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 32px;
+      box-sizing: border-box;
+    }
+    .stage { position: relative; width: 100%; max-width: 720px; text-align: center; }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 8px 18px; border-radius: 9999px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      font-size: 12px; letter-spacing: 0.3em; text-transform: uppercase;
+      color: rgba(196,181,253,0.9);
+      opacity: 0; transform: translateY(8px);
+      animation: fadeUp 0.8s ease-out 0.2s forwards;
+    }
+    h1.title {
+      font-family: "Instrument Serif", "Songti SC", serif;
+      font-style: italic; font-weight: 400;
+      font-size: clamp(56px, 9vw, 128px); line-height: 0.92;
+      letter-spacing: -3px;
+      margin: 28px 0 12px;
+      background: linear-gradient(180deg, #ffffff 0%, #d4c5ff 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      opacity: 0; transform: translateY(14px);
+      animation: fadeUp 0.9s ease-out 0.5s forwards;
+    }
+    p.subtitle {
+      max-width: 520px; margin: 0 auto 36px;
+      color: rgba(255,255,255,0.78); font-size: 16px; line-height: 1.7;
+      opacity: 0; transform: translateY(14px);
+      animation: fadeUp 0.9s ease-out 0.75s forwards;
+    }
+    .cta-row {
+      display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+      opacity: 0; transform: translateY(14px);
+      animation: fadeUp 0.9s ease-out 1.0s forwards;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 28px; border-radius: 9999px;
+      font-size: 15px; font-weight: 500;
+      text-decoration: none; transition: transform 0.2s ease, background 0.2s ease;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      color: #fff; box-shadow: 0 10px 40px rgba(139, 92, 246, 0.4);
+    }
+    .btn-primary:hover { transform: translateY(-1px); }
+    .btn-ghost {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: #fff;
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.08); }
+
+    .badge {
+      margin-top: 40px; display: inline-flex; align-items: center; gap: 10px;
+      padding: 8px 16px; border-radius: 9999px;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      font-size: 12px; color: rgba(254, 215, 170, 0.95);
+      opacity: 0; animation: fadeUp 0.9s ease-out 1.3s forwards;
+    }
+    .badge-dot {
+      width: 8px; height: 8px; border-radius: 9999px;
+      background: #f59e0b;
+      box-shadow: 0 0 12px #f59e0b;
+    }
+
+    .back-link {
+      position: fixed; top: 24px; left: 24px; z-index: 2;
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 14px; border-radius: 9999px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.14);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      color: #fff; text-decoration: none; font-size: 13px;
+    }
+    .back-link:hover { background: rgba(255,255,255,0.08); }
+  </style>
+</head>
+<body>
+  <div class="bg-cosmic" aria-hidden="true"></div>
+  <div class="bg-stars" aria-hidden="true"></div>
+
+  <a class="back-link" href="./index.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14" aria-hidden="true">
+      <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>
+    返回首页
+  </a>
+
+  <main>
+    <div class="stage">
+      <div class="loader" aria-hidden="true">
+        <div class="calibration"></div>
+        <div class="loader-text">正在校准宇宙……</div>
+      </div>
+
+      <div style="height:48px"></div>
+
+      <span class="pill">Cosmic Maze · 宇宙迷宫</span>
+
+      <h1 class="title">宇宙迷宫</h1>
+
+      <p class="subtitle">驾驶飞船，逐一探索太阳系的行星。答对所有问题即可获得「宇宙探索者」徽章。</p>
+
+      <div class="cta-row">
+        <a class="btn btn-primary" href="./page2.html">
+          先看 3D 探索
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </a>
+        <a class="btn btn-ghost" href="./index.html">返回首页</a>
+      </div>
+
+      <div class="badge">
+        <span class="badge-dot"></span>
+        目标徽章：宇宙探索者
+      </div>
+    </div>
+  </main>
+</body>
+</html>
